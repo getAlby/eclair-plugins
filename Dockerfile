@@ -37,4 +37,5 @@ COPY --from=BUILD /root/.m2/repository/com/getalby/eclair/eclair-rabbitmq/${PLUG
 
 ENTRYPOINT JAVA_OPTS="${JAVA_OPTS}" eclair-node/bin/eclair-node.sh \
     -Declair.printToConsole \
+    -Declair.datadir=${ECLAIR_DATADIR}  \
     /plugins/eclair-keysend-${PLUGIN_VERSION}.jar /plugins/eclair-rabbitmq-${PLUGIN_VERSION}.jar
