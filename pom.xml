@@ -4,7 +4,7 @@
 
     <groupId>com.getalby.eclair</groupId>
     <artifactId>eclair-plugins</artifactId>
-    <version>0.8.0</version>
+    <version>0.1.0</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -33,7 +33,7 @@
         <scalatest.version>3.2.12</scalatest.version>
         <akka.version>2.6.20</akka.version>
         <akka.http.version>10.2.7</akka.http.version>
-        <eclair.version>0.8.1-SNAPSHOT</eclair.version>
+        <eclair.version>0.8.0</eclair.version>
     </properties>
 
     <build>

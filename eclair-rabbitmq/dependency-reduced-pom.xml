@@ -3,7 +3,7 @@
   <parent>
     <artifactId>eclair-plugins</artifactId>
     <groupId>com.getalby.eclair</groupId>
-    <version>0.8.0</version>
+    <version>0.1.0</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>eclair-rabbitmq</artifactId>
@@ -44,7 +44,7 @@
     <dependency>
       <groupId>fr.acinq.eclair</groupId>
       <artifactId>eclair-core_2.13</artifactId>
-      <version>0.8.1-SNAPSHOT</version>
+      <version>0.8.0</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -148,6 +148,10 @@
           <groupId>com.softwaremill.quicklens</groupId>
         </exclusion>
         <exclusion>
+          <artifactId>kamon-prometheus_2.13</artifactId>
+          <groupId>io.kamon</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>kamon-core_2.13</artifactId>
           <groupId>io.kamon</groupId>
         </exclusion>
@@ -160,7 +164,7 @@
     <dependency>
       <groupId>fr.acinq.eclair</groupId>
       <artifactId>eclair-node_2.13</artifactId>
-      <version>0.8.1-SNAPSHOT</version>
+      <version>0.8.0</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -196,10 +200,6 @@
           <groupId>io.kamon</groupId>
         </exclusion>
         <exclusion>
-          <artifactId>kamon-prometheus_2.13</artifactId>
-          <groupId>io.kamon</groupId>
-        </exclusion>
-        <exclusion>
           <artifactId>kanela-agent</artifactId>
           <groupId>io.kamon</groupId>
         </exclusion>
@@ -207,8 +207,6 @@
     </dependency>
   </dependencies>
   <properties>
-    <maven.compiler.target>19</maven.compiler.target>
-    <maven.compiler.source>19</maven.compiler.source>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 </project>
