@@ -2,6 +2,7 @@ package com.getalby.eclair;
 
 
 import akka.actor.ActorRef;
+import akka.http.javadsl.marshallers.jackson.Jackson;
 import akka.http.scaladsl.server.RequestContext;
 import akka.http.scaladsl.server.RouteResult;
 import fr.acinq.bitcoin.PublicKey;
@@ -11,19 +12,22 @@ import fr.acinq.eclair.*;
 import fr.acinq.eclair.api.directives.EclairDirectives;
 import fr.acinq.eclair.payment.relay.Relayer;
 import fr.acinq.eclair.payment.send.PaymentInitiator;
-import fr.acinq.eclair.router.Graph;
 import fr.acinq.eclair.router.Graph.HeuristicsConstants;
 import fr.acinq.eclair.router.Graph.WeightRatios;
 import fr.acinq.eclair.router.Router;
 import fr.acinq.eclair.wire.protocol.GenericTlv;
 import scala.Function1;
 import scala.Option;
-import scala.collection.immutable.HashSet;
-import scala.collection.immutable.Set;
-import scala.compat.java8.FutureConverters;
 import scala.concurrent.Future;
+import scala.jdk.javaapi.CollectionConverters;
+import scala.jdk.javaapi.FutureConverters;
+import scala.util.Either;
 import scala.util.Left;
 import scodec.bits.ByteVector;
+
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
 
 import static akka.http.javadsl.server.Directives.*;
 import static akka.pattern.Patterns.ask;
@@ -58,8 +62,8 @@ public class KeysendPlugin implements Plugin, RouteProvider {
                 new CltvExpiryDelta(10)
         );
 
-        final scala.util.Either<WeightRatios, HeuristicsConstants> heuristics = new Left<>(
-                new Graph.WeightRatios(1.0, 0.0, 0.0, 0.0, new Relayer.RelayFees(new MilliSatoshi(100), 100))
+        final Either<WeightRatios, HeuristicsConstants> heuristics = new Left<>(
+                new WeightRatios(1.0, 0.0, 0.0, 0.0, new Relayer.RelayFees(new MilliSatoshi(100), 100))
         );
 
         final Router.MultiPartParams mpp = new Router.MultiPartParams(new MilliSatoshi(1000L), 2);
@@ -68,45 +72,49 @@ public class KeysendPlugin implements Plugin, RouteProvider {
                 heuristics,
                 mpp, "", false);
 
-        return directives.postRequest("keysend").tapply(t -> extractRequest(req -> {
-            final var data = req.entity().getDataBytes().toString();
-            System.out.println(data);
-            return complete("200");
-        }).asScala());
+        final var unmarshaller = Jackson.unmarshaller(KeySendBody.class);
+        final var alphabet = new Alphabet();
 
-        //return directives.postRequest("keysend").tapply(t -> formFieldMap(fields -> {
-        //    // TODO: Validation
+        return path("keysend", () -> post(() -> entity(unmarshaller, body -> {
 
-        //    final String amountMsat = fields.get("amountMsat");
-        //    final MilliSatoshi sats = new MilliSatoshi(Integer.parseInt(amountMsat));
+            final Set<GenericTlv> customTlvs = new HashSet<>();
+            body.getCustomTlvs().forEach((tag, value) -> {
+                customTlvs.add(new GenericTlv(
+                        UInt64.apply(Long.parseLong(tag)),
+                        ByteVector.fromValidHex(value, alphabet)
+                ));
+            });
 
-        //    final String pubKey = fields.get("nodeId");
+            final PaymentInitiator.SendSpontaneousPayment ssp = new PaymentInitiator.SendSpontaneousPayment(
+                    new MilliSatoshi(body.getAmountMsat()),
+                    new Crypto.PublicKey(PublicKey.fromHex(body.getNodeId())),
+                    ByteVector32.fromValidHex(generateRandomHexString()),
+                    1,
+                    Option.apply(""),
+                    params,
+                    CollectionConverters.asScala(customTlvs).toSeq(),
+                    false
+            );
 
-        //    // TODO: Generate
-        //    final ByteVector preImage = ByteVector.fromByte(Byte.parseByte(""));
+            final var future = ask(kit.paymentInitiator(), ssp, 1000L);
+            return onComplete(FutureConverters.asJava(future), result -> {
+                if (result.isSuccess()) {
+                    return complete(result.get().toString());
+                } else {
+                    return complete("ERROR");
+                }
+            });
+        }))).asScala();
+    }
 
-        //    // TODO: Get from POST
-        //    final Set<GenericTlv> genericTlvs = new HashSet<>();
+    private String generateRandomHexString() {
+        final Random rand = new Random();
 
-        //    final PaymentInitiator.SendSpontaneousPayment ssp = new PaymentInitiator.SendSpontaneousPayment(
-        //            sats,
-        //            new Crypto.PublicKey(PublicKey.fromHex(pubKey)),
-        //            ByteVector32.One(),
-        //            1,
-        //            Option.apply(""),
-        //            params,
-        //            genericTlvs.toSeq(),
-        //            false
-        //    );
+        final StringBuilder sb = new StringBuilder();
+        while (sb.length() < 64) {
+            sb.append(String.format("%08x", rand.nextInt()));
+        }
 
-        //    final var fut = FutureConverters.toJava(ask(kit.paymentInitiator(), ssp, 1000L));
-        //    return onComplete(fut, res -> {
-        //        if (res.isSuccess()) {
-        //            return complete("200");
-        //        } else {
-        //            return complete("500");
-        //        }
-        //    });
-        //}).asScala());
+        return sb.substring(0, 64);
     }
 }
