@@ -32,9 +32,9 @@ RUN mkdir /plugins
 
 ARG PLUGIN_VERSION=0.1.0
 
-COPY --from=BUILD /root/.m2/repository/com/getalby/eclair/eclair-keysend/${PLUGIN_VERSION}/eclair-keysend-${PLUGIN_VERSION}.jar /plugins/eclair-keysend-${PLUGIN_VERSION}.jar
-COPY --from=BUILD /root/.m2/repository/com/getalby/eclair/eclair-rabbitmq/${PLUGIN_VERSION}/eclair-rabbitmq-${PLUGIN_VERSION}.jar /plugins/eclair-rabbitmq-${PLUGIN_VERSION}.jar
+COPY --from=BUILD /root/.m2/repository/com/getalby/eclair/eclair-keysend/${PLUGIN_VERSION}/eclair-keysend-${PLUGIN_VERSION}.jar /plugins/eclair-keysend.jar
+COPY --from=BUILD /root/.m2/repository/com/getalby/eclair/eclair-rabbitmq/${PLUGIN_VERSION}/eclair-rabbitmq-${PLUGIN_VERSION}.jar /plugins/eclair-rabbitmq.jar
 
 ENTRYPOINT JAVA_OPTS="${JAVA_OPTS}" eclair-node/bin/eclair-node.sh \
     -Declair.printToConsole \
-    /plugins/eclair-keysend-${PLUGIN_VERSION}.jar /plugins/eclair-rabbitmq-${PLUGIN_VERSION}.jar
+    /plugins/eclair-keysend.jar /plugins/eclair-rabbitmq.jar
