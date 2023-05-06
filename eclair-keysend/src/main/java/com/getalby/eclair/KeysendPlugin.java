@@ -18,6 +18,7 @@ import fr.acinq.eclair.router.Router;
 import fr.acinq.eclair.wire.protocol.GenericTlv;
 import scala.Function1;
 import scala.Option;
+import scala.collection.immutable.HashSet;
 import scala.collection.immutable.Set;
 import scala.compat.java8.FutureConverters;
 import scala.concurrent.Future;
@@ -50,26 +51,62 @@ public class KeysendPlugin implements Plugin, RouteProvider {
 
     @Override
     public Function1<RequestContext, Future<RouteResult>> route(EclairDirectives directives) {
-        Router.SearchBoundaries boundaries = new Router.SearchBoundaries(new MilliSatoshi(1000L), 5.0, 1, new CltvExpiryDelta(10));
-        scala.util.Either<WeightRatios, HeuristicsConstants> heuristics = new Left<>(new Graph.WeightRatios(1.0, 0.0, 0.0, 0.0, new Relayer.RelayFees(new MilliSatoshi(100), 100)));
-        Router.MultiPartParams mpp = new Router.MultiPartParams(new MilliSatoshi(1000L), 2);
-        Router.RouteParams params = new Router.RouteParams(false,
+        final Router.SearchBoundaries boundaries = new Router.SearchBoundaries(
+                new MilliSatoshi(1000L),
+                5.0,
+                1,
+                new CltvExpiryDelta(10)
+        );
+
+        final scala.util.Either<WeightRatios, HeuristicsConstants> heuristics = new Left<>(
+                new Graph.WeightRatios(1.0, 0.0, 0.0, 0.0, new Relayer.RelayFees(new MilliSatoshi(100), 100))
+        );
+
+        final Router.MultiPartParams mpp = new Router.MultiPartParams(new MilliSatoshi(1000L), 2);
+        final Router.RouteParams params = new Router.RouteParams(false,
                 boundaries,
                 heuristics,
                 mpp, "", false);
-        PaymentInitiator.SendSpontaneousPayment ssp = new PaymentInitiator.SendSpontaneousPayment(
-                new MilliSatoshi(1000),
-                new Crypto.PublicKey(PublicKey.fromHex("037e9d070515c8ba32e6a32fa698e568fc4944a1bb67ae2048947511267202509b")),
-                ByteVector32.One(),
-                1,
-                Option.apply(""),
-                params,
-                new Set.Set1<GenericTlv>(new GenericTlv(UInt64.apply(1), ByteVector.empty())).toSeq(),
-                false);
-        final var fut = ask(kit.paymentInitiator(), ssp, 1000L);
-        final var s = FutureConverters.toJava(fut);
-        return path("keysend", () ->
-                onComplete(s, res -> complete((String) res.get().toString()))).asScala();
 
+        return directives.postRequest("keysend").tapply(t -> extractRequest(req -> {
+            final var data = req.entity().getDataBytes().toString();
+            System.out.println(data);
+            return complete("200");
+        }).asScala());
+
+        //return directives.postRequest("keysend").tapply(t -> formFieldMap(fields -> {
+        //    // TODO: Validation
+
+        //    final String amountMsat = fields.get("amountMsat");
+        //    final MilliSatoshi sats = new MilliSatoshi(Integer.parseInt(amountMsat));
+
+        //    final String pubKey = fields.get("nodeId");
+
+        //    // TODO: Generate
+        //    final ByteVector preImage = ByteVector.fromByte(Byte.parseByte(""));
+
+        //    // TODO: Get from POST
+        //    final Set<GenericTlv> genericTlvs = new HashSet<>();
+
+        //    final PaymentInitiator.SendSpontaneousPayment ssp = new PaymentInitiator.SendSpontaneousPayment(
+        //            sats,
+        //            new Crypto.PublicKey(PublicKey.fromHex(pubKey)),
+        //            ByteVector32.One(),
+        //            1,
+        //            Option.apply(""),
+        //            params,
+        //            genericTlvs.toSeq(),
+        //            false
+        //    );
+
+        //    final var fut = FutureConverters.toJava(ask(kit.paymentInitiator(), ssp, 1000L));
+        //    return onComplete(fut, res -> {
+        //        if (res.isSuccess()) {
+        //            return complete("200");
+        //        } else {
+        //            return complete("500");
+        //        }
+        //    });
+        //}).asScala());
     }
 }
